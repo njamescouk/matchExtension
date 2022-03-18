@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Nick James" />
+  <meta name="dcterms.date" content="2022-03-18" />
+  <title>Match Extension for sqlite</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Match Extension for sqlite</h1>
+<p class="author">Nick James</p>
+<p class="date">2022-03-18</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#compilation">Compilation</a>
+<ul>
+<li><a href="#dependencies">Dependencies</a></li>
+</ul></li>
+<li><a href="#usage">Usage</a>
+<ul>
+<li><a href="#use-with-sqlite3-shell">Use with sqlite3 shell</a></li>
+<li><a href="#use-with-c">Use with C++</a></li>
+</ul></li>
+<li><a href="#notes">Notes</a></li>
+</ul>
+</nav>
+<h2 id="introduction">Introduction</h2>
+<p>Having been unable to find an <a href="https://sqlite.org/loadext.html">sqlite extension</a> to implement the <a href="https://sqlite.org/lang_expr.html#the_like_glob_regexp_match_and_extract_operators">MATCH</a> operator, I’ve had a go myself.</p>
+<p>It’s probably buggy: in particular I’ve no idea whether it’s UTF8 compliant or not. If it isn’t I don’t know what to do about it. Consequently <em>don’t use it in production or when connected to the internet</em>.</p>
+<h2 id="compilation">Compilation</h2>
+<p>Edit and use <code>compile.sh</code> or <code>compile.bat</code> as appropriate.</p>
+<p>There’s a bit of a fandango since we need a clean gcc compilation for the <code>sqlite3</code> shell whilst calling out to C++ <code>&lt;regex&gt;</code> functions.</p>
+<h3 id="dependencies">Dependencies</h3>
+<p><code>sqlite3ext.h</code> from one of the options at <a href="https://sqlite.org/download.html">sqlite.org/download.html</a></p>
+<h2 id="usage">Usage</h2>
+<p>The extension replicates <code>grep -o</code></p>
+<pre><code>select &#39;string&#39; MATCH &#39;n.*&#39;;</code></pre>
+<p>will return ‘ng’, just as</p>
+<pre><code>echo string | grep -o &quot;n.*&quot;</code></pre>
+<p>will.</p>
+<h3 id="use-with-sqlite3-shell">Use with sqlite3 shell</h3>
+<p>do</p>
+<pre><code>.load path/to/match</code></pre>
+<p>at the prompt or in <code>sqliterc</code></p>
+<h3 id="use-with-c">Use with C++</h3>
+<p>do something like</p>
+<pre><code>sqlite3 *s3Ptr = ...
+int rc = sqlite3_create_function(s3Ptr, 
+                                &quot;match&quot;, 
+                                2, 
+                                SQLITE_UTF8, 
+                                0, 
+                                matchFunc, 
+                                0, 
+                                0);</code></pre>
+<p>in your source. You can compile this as C++.</p>
+<h2 id="notes">Notes</h2>
+<p>This could perhaps be implemented by hacking on <a href="https://www.sqlite.org/src/file?name=ext/misc/regexp.c&amp;ci=trunk">regexp.c</a>.</p>
+<p>However, I’ve arranged for <code>matchFunc</code> to call <code>int getMatch(const char *pattern, const char *input, char *res)</code> which uses the C++ <code>&lt;regex&gt;</code> library to do the heavy lifting.</p>
+<p>All being well <code>*res</code> contains the matching text.</p>
+<p>I look forward to seeing a more rigorous and economical implementation.</p>
+</body>
+</html>
